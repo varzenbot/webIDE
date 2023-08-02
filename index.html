@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Go Web IDE</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css">
+    <style>
+      /* Add any custom styles for your IDE here */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+  
+      #menu-bar {
+        background-color: lightgray;
+        padding: 10px;
+      }
+  
+      #container {
+        display: flex;
+        height: 90%;
+        width: 100%;
+      }
+  
+      #editor {
+        flex: 1;
+        background-color: #f0f0f0;
+      }
+  
+      #explorer {
+        flex: 0 0 10%;
+        background-color: #d0d0d0;
+        padding: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="menu-bar">This is the top menu</div>
+    </br>
+    </hr>
+    <div id="container">
+      <div id="editor"></div>
+      <div id="explorer"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.27.0/min/vs/loader.js"></script>
+    <script>
+    // Load the Monaco Editor and its required languages
+      require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.27.0/min/vs' } });
+      require(['vs/editor/editor.main'], function() {
+      // Initialize the editor here
+      var editor = monaco.editor.create(document.getElementById('editor'), {
+        value: [
+          'package main',
+          '',
+          'import "fmt"',
+          '',
+          'func main() {',
+          '\tfmt.Println("Hello, world!")',
+          '}',
+        ].join('\n'),
+        language: 'go',
+        theme: 'vs-dark',
+      });
+
+      // Load the Go language support
+      require(['vs/language/go/goMode'], function() {
+        monaco.languages.register({ id: 'go' });
+        monaco.languages.setMonarchTokensProvider('go', window.monaco.languages.go);
+      });
+
+      // Set up Go language services
+      require(['vs/language/go/goMain'], function () {
+        const languageFeatures = window.monaco.languages.go;
+        languageFeatures.setupGo();
+      });
+    });
+
+    </script>
+
+    <script>
+      // Add an event listener to fetch the file list and populate the explorer
+      document.addEventListener('DOMContentLoaded', function () {
+        fetch('/files')
+          .then((response) => response.json())
+          .then((files) => {
+            const explorer = document.getElementById('explorer');
+            files.forEach((file) => {
+              const fileElement = document.createElement('div');
+              fileElement.textContent = file;
+              fileElement.addEventListener('click', () => {
+                fetch(`/file/${file}`)
+                  .then((response) => response.text())
+                  .then((content) => {
+                    editor.setValue(content);
+                  })
+                  .catch((error) => {
+                    console.error('Error loading file:', error);
+                  });
+              });
+              explorer.appendChild(fileElement);
+            });
+          })
+          .catch((error) => {
+            console.error('Error fetching files:', error);
+          });
+      });
+    </script>
+  </body>
+</html>
